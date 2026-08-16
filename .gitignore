@@ -1,0 +1,13 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Netlify
+.netlify/
+
+# Don't ignore the resume — it's deployed with the site
+!resume.pdf
