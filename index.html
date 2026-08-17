@@ -18,7 +18,7 @@
    ========================================================= */
 
 :root {
-  /* core palette */
+  /* core palette — DARK (default) */
   --paper:    #0E1116;
   --surface:  #1F1A14;
   --ink:      #E8E4D8;
@@ -52,6 +52,29 @@
   /* spacing */
   --gutter: 32px;
   --section-pad: clamp(80px, 12vh, 160px);
+
+  /* ambient gradient tints (theme-aware) */
+  --ambient-1: rgba(201, 169, 97, 0.04);
+  --ambient-2: rgba(123, 139, 111, 0.03);
+}
+
+/* LIGHT theme — aged-paper terminal, not generic white */
+:root[data-theme="light"] {
+  --paper:    #F2EBDC;          /* aged paper, warm */
+  --surface:  #E8DFCB;          /* slightly lifted for cards */
+  --ink:      #1B1814;          /* deep ink, near-black warm */
+  --ink-dim:  #5A5347;
+  --ink-mute: #8A8275;
+  --rule:     rgba(27, 24, 20, 0.10);
+  --rule-strong: rgba(27, 24, 20, 0.20);
+
+  --brass:      #8A6F2A;        /* darker brass for contrast on light */
+  --brass-soft: rgba(138, 111, 42, 0.10);
+  --verdigris:  #4F5F47;        /* deeper verdigris */
+  --oxblood:    #8A2E2E;
+
+  --ambient-1: rgba(138, 111, 42, 0.05);
+  --ambient-2: rgba(79, 95, 71, 0.04);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,12 +89,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
+  transition: background-color 220ms ease, color 220ms ease;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
   overflow-x: hidden;
+  transition: background-color 220ms ease, color 220ms ease;
 }
 
 /* Subtle ambient grain — keeps the dark from looking digital-flat */
@@ -79,10 +104,11 @@ body::before {
   content: '';
   position: fixed; inset: 0;
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(201, 169, 97, 0.04), transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(123, 139, 111, 0.03), transparent 60%);
+    radial-gradient(ellipse at 20% 0%, var(--ambient-1), transparent 50%),
+    radial-gradient(ellipse at 100% 100%, var(--ambient-2), transparent 60%);
   pointer-events: none;
   z-index: 0;
+  transition: background-image 220ms ease;
 }
 
 ::selection { background: var(--brass); color: var(--paper); }
@@ -115,7 +141,7 @@ section:first-of-type { border-top: none; }
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 50;
-  background: rgba(14, 17, 22, 0.85);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--rule);
@@ -143,7 +169,38 @@ section:first-of-type { border-top: none; }
   white-space: nowrap;
   animation: ticker-scroll 48s linear infinite;
   will-change: transform;
+  flex: 1;
+  min-width: 0;
 }
+
+/* Theme toggle — sits at the far right of the ticker bar */
+.theme-toggle {
+  flex-shrink: 0;
+  height: 100%;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--rule-strong);
+  cursor: pointer;
+  transition: color 180ms ease;
+  text-transform: uppercase;
+}
+.theme-toggle:hover { color: var(--brass); }
+.theme-toggle .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink-mute);
+  transition: background 180ms ease;
+}
+:root[data-theme="light"] .theme-toggle .dot { background: var(--brass); }
+.theme-toggle .mode-label { font-weight: 500; }
 
 .ticker-item {
   font-family: var(--f-mono);
@@ -1088,6 +1145,41 @@ footer .thesis {
 </main>
 
 <script>
+  // Theme: stored choice wins, else browser default, else dark
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById('theme-toggle');
+    const label = btn.querySelector('.mode-label');
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        root.setAttribute('data-theme', 'light');
+        label.textContent = 'DARK';
+      } else {
+        root.removeAttribute('data-theme');
+        label.textContent = 'LIGHT';
+      }
+    }
+
+    let stored = null;
+    try { stored = localStorage.getItem('kk-theme'); } catch (e) {}
+
+    if (stored === 'light' || stored === 'dark') {
+      applyTheme(stored);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      applyTheme('light');
+    } else {
+      applyTheme('dark');
+    }
+
+    btn.addEventListener('click', function () {
+      const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      const next = current === 'light' ? 'dark' : 'light';
+      applyTheme(next);
+      try { localStorage.setItem('kk-theme', next); } catch (e) {}
+    });
+  })();
+
   // Scroll reveal — IntersectionObserver, no library
   const reveals = document.querySelectorAll('.reveal');
   if ('IntersectionObserver' in window) {
